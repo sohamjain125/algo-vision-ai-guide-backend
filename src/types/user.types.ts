@@ -1,23 +1,25 @@
 export interface IUser {
   _id: string;
+  name: string;
   email: string;
   password: string;
-  name: string;
   role: 'user' | 'admin';
   createdAt: Date;
   updatedAt: Date;
+  comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
 export interface IUserInput {
+  name: string;
   email: string;
   password: string;
-  name: string;
+
 }
 
 export interface IUserResponse {
   _id: string;
-  email: string;
   name: string;
+  email: string;
   role: 'user' | 'admin';
   createdAt: Date;
 }

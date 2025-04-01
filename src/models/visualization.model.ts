@@ -1,51 +1,34 @@
-import mongoose, { Schema } from 'mongoose';
-import { ISavedVisualization } from '../types/visualization.types';
+import mongoose, { Schema, Document } from 'mongoose';
+import { IVisualizationRequest, IVisualizationResponse, ISavedVisualization } from '../types/visualization.types';
 
-const visualizationSchema = new Schema<ISavedVisualization>(
+type IVisualizationDocument = Omit<ISavedVisualization, '_id'> & Document;
+
+const visualizationSchema = new Schema<IVisualizationDocument>(
   {
     userId: {
-      type: Schema.Types.ObjectId,
+      type: String,
       ref: 'User',
       required: true,
     },
     request: {
-      algorithmType: {
-        type: String,
-        required: true,
-        enum: ['sorting', 'searching', 'graph', 'tree', 'linked-list', 'stack', 'queue', 'heap'],
-      },
-      algorithm: {
-        type: String,
-        required: true,
-      },
-      input: {
-        type: Schema.Types.Mixed,
-        required: true,
-      },
-      speed: {
-        type: String,
-        enum: ['slow', 'medium', 'fast'],
-      },
+      algorithmType: { type: String, required: true },
+      algorithm: { type: String, required: true },
+      input: { type: Schema.Types.Mixed, required: true },
+      speed: { type: String, enum: ['slow', 'medium', 'fast'] },
     },
     response: {
       steps: [{
-        step: Number,
-        description: String,
-        data: Schema.Types.Mixed,
-        highlights: [Number],
+        step: { type: Number, required: true },
+        description: { type: String, required: true },
+        data: { type: Schema.Types.Mixed, required: true },
+        highlights: [{ type: Number }],
       }],
-      timeComplexity: String,
-      spaceComplexity: String,
-      explanation: String,
+      timeComplexity: { type: String, required: true },
+      spaceComplexity: { type: String, required: true },
+      explanation: { type: String, required: true },
     },
-    title: {
-      type: String,
-      trim: true,
-    },
-    description: {
-      type: String,
-      trim: true,
-    },
+    title: { type: String },
+    description: { type: String },
   },
   {
     timestamps: true,
@@ -55,4 +38,7 @@ const visualizationSchema = new Schema<ISavedVisualization>(
 // Index for faster queries
 visualizationSchema.index({ userId: 1, createdAt: -1 });
 
-export const Visualization = mongoose.model<ISavedVisualization>('Visualization', visualizationSchema); 
+export const Visualization = mongoose.model<IVisualizationDocument>(
+  'Visualization',
+  visualizationSchema
+); 

@@ -4,25 +4,34 @@ import { IUserInput, ILoginInput, IUserResponse, ILoginResponse } from '../types
 import { AppError } from '../types/error.types';
 
 const signToken = (id: string): string => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'your_jwt_secret_key', {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-  });
+  const secret = process.env.JWT_SECRET || 'your_jwt_secret_key';
+  const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
+  
+  return jwt.sign(
+    { id },
+    secret as jwt.Secret,
+    { expiresIn } as jwt.SignOptions
+  );
 };
 
 export class UserService {
-  static async register(userData: IUserInput): Promise<IUserResponse> {
+  static async register(userData: IUserInput): Promise<ILoginResponse> {
     const existingUser = await User.findOne({ email: userData.email });
     if (existingUser) {
       throw new AppError('Email already in use', 400);
     }
 
     const user = await User.create(userData);
+    const token = signToken(user._id);
     return {
-      _id: user._id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      createdAt: user.createdAt,
+      token,
+      user: {
+        _id: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        createdAt: user.createdAt,
+      },
     };
   }
 

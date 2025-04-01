@@ -1,34 +1,38 @@
-import { Router } from 'express';
+import express from 'express';
 import { VisualizationController } from '../controllers/visualization.controller';
-import { protect } from '../middleware/auth.middleware';
 import { validate } from '../middleware/validation.middleware';
-import { schemas } from '../middleware/validation.middleware';
+import { createVisualizationSchema } from '../schemas/visualization.schema';
+import { protect } from '../middleware/auth.middleware';
 
-const router = Router();
-const visualizationController = new VisualizationController();
+const router = express.Router();
 
-// All routes are protected
-router.use(protect);
-
+// Create a new visualization
 router.post(
   '/',
-  validate(schemas.visualization.create),
-  visualizationController.createVisualization
+  protect,
+  validate(createVisualizationSchema),
+  VisualizationController.createVisualization
 );
 
+// Get all visualizations for the current user
 router.get(
   '/',
-  visualizationController.getUserVisualizations
+  protect,
+  VisualizationController.getUserVisualizations
 );
 
+// Get a specific visualization
 router.get(
   '/:id',
-  visualizationController.getVisualization
+  protect,
+  VisualizationController.getVisualization
 );
 
+// Delete a visualization
 router.delete(
   '/:id',
-  visualizationController.deleteVisualization
+  protect,
+  VisualizationController.deleteVisualization
 );
 
 export default router; 

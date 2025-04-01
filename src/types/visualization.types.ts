@@ -1,12 +1,13 @@
-export type AlgorithmType = 
-  | 'sorting'
-  | 'searching'
-  | 'graph'
-  | 'tree'
-  | 'linked-list'
-  | 'stack'
-  | 'queue'
-  | 'heap';
+export enum AlgorithmType {
+  SORTING = 'sorting',
+  SEARCHING = 'searching',
+  GRAPH = 'graph',
+  TREE = 'tree',
+  LINKED_LIST = 'linked-list',
+  STACK = 'stack',
+  QUEUE = 'queue',
+  HEAP = 'heap'
+}
 
 export type SortingAlgorithm = 
   | 'bubble-sort'

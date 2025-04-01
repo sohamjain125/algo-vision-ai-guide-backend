@@ -2,42 +2,34 @@ import { Visualization } from '../models/visualization.model';
 import { IVisualizationRequest, IVisualizationResponse, ISavedVisualization } from '../types/visualization.types';
 import { AppError } from '../types/error.types';
 import OpenAI from 'openai';
+import { generateVisualization } from '../utils/visualization.generator';
+import { Document } from 'mongoose';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+type IVisualizationDocument = Omit<ISavedVisualization, '_id'> & Document;
+
 export class VisualizationService {
   static async createVisualization(
     userId: string,
-    request: IVisualizationRequest
-  ): Promise<ISavedVisualization> {
-    try {
-      // Generate visualization using OpenAI
-      const response = await this.generateVisualization(request);
+    data: IVisualizationRequest
+  ): Promise<IVisualizationResponse> {
+    const visualization = await Visualization.create({
+      ...data,
+      userId,
+    });
 
-      // Save visualization
-      const visualization = await Visualization.create({
-        userId,
-        request,
-        response,
-      });
-
-      return visualization;
-    } catch (error) {
-      throw new AppError(
-        'Failed to create visualization',
-        500
-      );
-    }
+    return this.parseVisualizationResponse(visualization.toObject());
   }
 
   static async getVisualization(
     userId: string,
-    visualizationId: string
-  ): Promise<ISavedVisualization> {
+    id: string
+  ): Promise<IVisualizationResponse> {
     const visualization = await Visualization.findOne({
-      _id: visualizationId,
+      _id: id,
       userId,
     });
 
@@ -45,14 +37,14 @@ export class VisualizationService {
       throw new AppError('Visualization not found', 404);
     }
 
-    return visualization;
+    return this.parseVisualizationResponse(visualization.toObject());
   }
 
   static async getUserVisualizations(
     userId: string,
     page: number = 1,
     limit: number = 10
-  ): Promise<{ visualizations: ISavedVisualization[]; total: number }> {
+  ): Promise<{ visualizations: IVisualizationResponse[]; total: number }> {
     const skip = (page - 1) * limit;
     const [visualizations, total] = await Promise.all([
       Visualization.find({ userId })
@@ -62,15 +54,15 @@ export class VisualizationService {
       Visualization.countDocuments({ userId }),
     ]);
 
-    return { visualizations, total };
+    return {
+      visualizations: visualizations.map((v) => this.parseVisualizationResponse(v.toObject())),
+      total,
+    };
   }
 
-  static async deleteVisualization(
-    userId: string,
-    visualizationId: string
-  ): Promise<void> {
+  static async deleteVisualization(userId: string, id: string): Promise<void> {
     const visualization = await Visualization.findOneAndDelete({
-      _id: visualizationId,
+      _id: id,
       userId,
     });
 
@@ -79,71 +71,33 @@ export class VisualizationService {
     }
   }
 
-  private static async generateVisualization(
+  static async generateVisualization(
     request: IVisualizationRequest
   ): Promise<IVisualizationResponse> {
     try {
-      // Create a prompt for OpenAI
-      const prompt = this.createPrompt(request);
+      const response = await generateVisualization(request);
+      
+      if (!response) {
+        throw new AppError('Failed to generate visualization', 500);
+      }
 
-      // Get response from OpenAI
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4",
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert in data structures and algorithms. Generate a step-by-step visualization of the requested algorithm."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 2000,
-      });
-
-      // Parse and structure the response
-      const response = completion.choices[0].message.content;
-      return this.parseVisualizationResponse(response, request);
+      return response;
     } catch (error) {
       throw new AppError(
-        'Failed to generate visualization',
+        error instanceof Error ? error.message : 'Failed to generate visualization',
         500
       );
     }
   }
 
-  private static createPrompt(request: IVisualizationRequest): string {
-    const { algorithmType, algorithm, input, speed } = request;
-    return `Generate a step-by-step visualization for ${algorithm} (${algorithmType}) with the following input: ${JSON.stringify(input)}. 
-    Please include:
-    1. Each step of the algorithm
-    2. The state of the data at each step
-    3. Time complexity
-    4. Space complexity
-    5. A clear explanation of how the algorithm works
-    ${speed ? `Animation speed: ${speed}` : ''}`;
-  }
-
   private static parseVisualizationResponse(
-    response: string,
-    request: IVisualizationRequest
+    visualization: Omit<ISavedVisualization, '_id'> & Document
   ): IVisualizationResponse {
-    // This is a simplified version. In a real implementation, you would need to
-    // properly parse the OpenAI response and structure it according to your needs
     return {
-      steps: [
-        {
-          step: 1,
-          description: "Initial state",
-          data: request.input,
-        },
-        // Add more steps based on the algorithm
-      ],
-      timeComplexity: "O(n)",
-      spaceComplexity: "O(1)",
-      explanation: response,
+      steps: visualization.response.steps,
+      timeComplexity: visualization.response.timeComplexity,
+      spaceComplexity: visualization.response.spaceComplexity,
+      explanation: visualization.response.explanation,
     };
   }
 } 

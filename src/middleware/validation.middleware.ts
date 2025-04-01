@@ -32,8 +32,8 @@ export const validate = (schema: AnyZodObject) => {
 // Common validation schemas
 export const schemas = {
   user: {
-    register: {
-      body: {
+    register: z.object({
+      body: z.object({
         email: z.string().email('Invalid email address'),
         password: z
           .string()
@@ -43,18 +43,18 @@ export const schemas = {
             'Password must contain at least one uppercase letter, one lowercase letter, and one number'
           ),
         name: z.string().min(2, 'Name must be at least 2 characters'),
-      },
-    },
-    login: {
-      body: {
+      }),
+    }),
+    login: z.object({
+      body: z.object({
         email: z.string().email('Invalid email address'),
         password: z.string().min(1, 'Password is required'),
-      },
-    },
+      }),
+    }),
   },
   visualization: {
-    create: {
-      body: {
+    create: z.object({
+      body: z.object({
         algorithmType: z.enum([
           'sorting',
           'searching',
@@ -72,7 +72,7 @@ export const schemas = {
           z.record(z.any()),
         ]),
         speed: z.enum(['slow', 'medium', 'fast']).optional(),
-      },
-    },
+      }),
+    }),
   },
 }; 
